@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src = "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.1.0.js"
+         type = "text/javascript"></script>
+<style>
+html, body { height: 100%; margin: 0; padding: 0; }
+body {
+  font-family: "Lato", sans-serif;
+}
+
+.sidebar {
+  height: 100%;
+  width: 0;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  background-color: #111;
+  overflow-x: hidden;
+  transition: 0.5s;
+  padding-top: 60px;
+}
+.sidebar h2 {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #ffffff;
+  display: block;
+  transition: 0.3s;
+}
+.sidebar a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+
+.sidebar a:hover {
+  color: #f1f1f1;
+}
+
+.sidebar .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+}
+
+.openbtn {
+  font-size: 20px;
+  cursor: pointer;
+  background-color: #111;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+}
+
+.openbtn:hover {
+  background-color: #444;
+}
+#myMenu {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+#mySearch {
+  width: 100%;
+  font-size: 18px;
+  padding: 11px;
+  border: 1px solid #ddd;
+}
+#main {
+  transition: margin-left .5s;
+  padding: 16px;
+}
+#map { height: 100%; }
+
+/* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
+
+@media screen and (max-height: 450px) {
+  .sidebar {padding-top: 15px;}
+  .sidebar a {font-size: 18px;}
+}
+</style>
+</head>
+<body>
+
+<div id="mySidebar" class="sidebar">
+  <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+  <h2>My Locations</h2>
+  <input type="text" id="mySearch" onkeyup="myFunction()" placeholder="Search.." title="Type in a category">
+  <ul id="myMenu" data-bind="foreach: items">
+      <li><a href="#" data-bind="text: $data.name" id="teste" onclick="teste(this.document.getElementById('teste'));"></a></li>
+  </ul>
+</div>
+
+<div id="main">
+  <button class="openbtn" onclick="openNav()">☰</button>
+
+</div>
+<div id="map"></div>
+<script type="text/javascript">
+
+function myFunction() {
+  var input, filter, ul, li, a, i;
+  input = document.getElementById("mySearch");
+  filter = input.value.toUpperCase();
+  ul = document.getElementById("myMenu");
+  li = ul.getElementsByTagName("li");
+  for (i = 0; i < li.length; i++) {
+    a = li[i].getElementsByTagName("a")[0];
+    if (a.innerHTML.toUpperCase().indexOf(filter) > -1) {
+      li[i].style.display = "";
+    } else {
+      li[i].style.display = "none";
+    }
+  }
+}
+
+function openNav() {
+  document.getElementById("mySidebar").style.width = "250px";
+  document.getElementById("main").style.marginLeft = "250px";
+}
+
+function closeNav() {
+  document.getElementById("mySidebar").style.width = "0";
+  document.getElementById("main").style.marginLeft= "0";
+}
+var locations = [
+    { name: "torre de tv", ltd: -15.80, lng: -47.93},
+    { name: "shopping", ltd: -15.801, lng: -47.93},
+    { name: "parque da cidade", ltd: -15.80, lng: -47.93},
+    { name: "congresso", ltd: -15.802, lng: -47.93},
+    { name: "catedral", ltd: -15.803, lng: -47.93}
+  ];
+
+
+function initMap() {
+
+var LocalView = function(items) {
+    this.items = ko.observableArray(items);
+    function mysearch(d){
+      //var loc = d.getAttribute("data-bind");
+      alert(d);
+      service.nearbySearch(d, callback);
+    };
+};
+ko.applyBindings(new LocalView(locations));
+
+
+//var locationArray = ko.observableArray(locations);
+
+var myLatLng = {lat: -15.7797200, lng: -47.9297200};
+
+var map = new google.maps.Map(document.getElementById('map'), {
+  zoom: 13,
+  center: myLatLng
+});
+
+locations.forEach(function (location){
+  var $body = $('body');
+  var $wikiElem = $('#wikipedia-links');
+  var contentString = '<div id="content">'+
+    '<div class="wikipedia-container">'+
+    '<h3 id="wikipedia-header">Relevant Wikipedia Links</h3>'+
+    '<ul id="wikipedia-links">List</ul>'+
+    '</div>';
+
+//  var infowindow = new google.maps.InfoWindow({
+//    content: contentString
+//  });
+
+
+
+  // clear out old data before new request
+  $wikiElem.text("");
+
+  var wiki_url = 'http://en.wikipedia.org/w/api.php?action=opensearch&search='+ location.name +'&format=json&callback=wikiCallback';
+  var wikirequesttimeout = setTimeout(function(){
+    $wikiElem.text("Failed to get wikipedia resourses");
+  }, 8000);
+
+  $.ajax({
+    url: wiki_url,
+    dataType: "jsonp",
+    success: function(response){
+      var articleList = response[1];
+      for (var i =0; i < articleList.length; i++){
+        articleStr = articleList[i];
+        var url = 'http://en.wikipedia.org/wiki/'+ articleStr;
+        $wikiElem.append('<li><a href="'+ url +'">'+ articleStr +'</a></li>');
+
+        infowindow.setContent(
+          '<div>'+
+          '<h3>Relevant Wikipedia Links</h3>'+
+          '<li><a href="'+ url +'">'+ articleStr +'</a></li>'+
+          '</div>');
+
+      };
+      clearTimeout(wikirequesttimeout);
+    }
+  });
+
+
+  var marker = new google.maps.Marker({
+    position: new google.maps.LatLng(location.ltd,location.lng),
+    map: map,
+    title: location.name
+
+  });
+
+  marker.addListener('click', function() {
+    map.setZoom('20');
+    map.setCenter(marker.getPosition());
+    infowindow.open(map, marker);
+  });
+    var infowindow = new google.maps.InfoWindow({
+      content: contentString
+    });
+});
+$("#teste").click(function(){
+    alert("oh god"+$("#test").val());
+});
+var service = new google.maps.places.PlacesService(map);
+var loc;
+function teste (data){
+  alert(data)
+};
+function mysearch(d){
+  //var loc = d.getAttribute("data-bind");
+  alert(d);
+  service.nearbySearch(d, callback);
+};
+
+function callback(results, status) {
+if (status == google.maps.places.PlacesServiceStatus.OK) {
+  for (var i = 0; i < results.length; i++) {
+    var place = results[i];
+    createMarker(results[i]);
+  };
+};
+};
+
+}
+
+</script>
+
+
+
+<!--TODO: Load the JS API ASYNCHRONOUSLY below.-->
+<script async defer
+ src="https://maps.googleapis.com/maps/api/js?v=3&key=AIzaSyBQRsSHTd1eqJ6WqOlHyO3KA90BxwwnyV4&callback=initMap">
+</script>
+<script src="js/libs/jquery.min.js"></script>
+
+</body>
+</html>
